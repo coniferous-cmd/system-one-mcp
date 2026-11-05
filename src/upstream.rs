@@ -149,78 +149,19 @@ impl Upstream {
     }
 
     pub async fn choice(&self, params: ChoiceParams) -> Result<UpstreamOutcome, UpstreamError> {
-        let questions = params
-            .questions
-            .iter()
-            .map(|q| {
-                let mut criteria = Map::new();
-                for option in &q.criteria {
-                    criteria.insert(
-                        option.name.clone(),
-                        option
-                            .description
-                            .clone()
-                            .map(Value::String)
-                            .unwrap_or(Value::Null),
-                    );
-                }
-                (
-                    q.id.clone(),
-                    json!({
-                        "type": "choice",
-                        "instructions": q.instructions,
-                        "criteria": Value::Object(criteria),
-                    }),
-                )
-            })
-            .collect::<Vec<_>>();
+        let questions = choice_questions(&params.questions);
         self.post(params.state, questions, params.idempotency_key)
             .await
     }
 
     pub async fn score(&self, params: ScoreParams) -> Result<UpstreamOutcome, UpstreamError> {
-        let questions = params
-            .questions
-            .iter()
-            .map(|q| {
-                (
-                    q.id.clone(),
-                    json!({
-                        "type": "score",
-                        "instructions": q.instructions,
-                        "criteria": q.criteria,
-                    }),
-                )
-            })
-            .collect::<Vec<_>>();
+        let questions = score_questions(&params.questions);
         self.post(params.state, questions, params.idempotency_key)
             .await
     }
 
     pub async fn noul(&self, params: NoulParams) -> Result<UpstreamOutcome, UpstreamError> {
-        let questions = params
-            .questions
-            .iter()
-            .map(|q| {
-                let mut question = json!({
-                    "type": "noul",
-                    "instructions": q.instructions,
-                });
-                if let Some(criteria) = &q.criteria {
-                    let mut map = Map::new();
-                    if let Some(text) = &criteria.when_true {
-                        map.insert("true".into(), Value::String(text.clone()));
-                    }
-                    if let Some(text) = &criteria.when_false {
-                        map.insert("false".into(), Value::String(text.clone()));
-                    }
-                    if !map.is_empty() {
-                        question["criteria"] = Value::Object(map);
-                    }
-                }
-                (q.id.clone(), question)
-            })
-            .collect::<Vec<_>>();
+        let questions = noul_questions(&params.questions);
         self.post(params.state, questions, params.idempotency_key)
             .await
     }
@@ -367,5 +308,161 @@ fn validate_state(state: &Value) -> Result<(), UpstreamError> {
             message: "state must be a string, JSON object, or JSON array".into(),
             request_id: None,
         }),
+    }
+}
+
+/// Convert tool-level choice questions into the upstream `questions` map.
+fn choice_questions(questions: &[ChoiceQuestion]) -> Vec<(String, Value)> {
+    questions
+        .iter()
+        .map(|q| {
+            let mut criteria = Map::new();
+            for option in &q.criteria {
+                criteria.insert(
+                    option.name.clone(),
+                    option
+                        .description
+                        .clone()
+                        .map(Value::String)
+                        .unwrap_or(Value::Null),
+                );
+            }
+            (
+                q.id.clone(),
+                json!({
+                    "type": "choice",
+                    "instructions": q.instructions,
+                    "criteria": Value::Object(criteria),
+                }),
+            )
+        })
+        .collect()
+}
+
+fn score_questions(questions: &[ScoreQuestion]) -> Vec<(String, Value)> {
+    questions
+        .iter()
+        .map(|q| {
+            (
+                q.id.clone(),
+                json!({
+                    "type": "score",
+                    "instructions": q.instructions,
+                    "criteria": q.criteria,
+                }),
+            )
+        })
+        .collect()
+}
+
+fn noul_questions(questions: &[NoulQuestion]) -> Vec<(String, Value)> {
+    questions
+        .iter()
+        .map(|q| {
+            let mut question = json!({
+                "type": "noul",
+                "instructions": q.instructions,
+            });
+            if let Some(criteria) = &q.criteria {
+                let mut map = Map::new();
+                if let Some(text) = &criteria.when_true {
+                    map.insert("true".into(), Value::String(text.clone()));
+                }
+                if let Some(text) = &criteria.when_false {
+                    map.insert("false".into(), Value::String(text.clone()));
+                }
+                if !map.is_empty() {
+                    question["criteria"] = Value::Object(map);
+                }
+            }
+            (q.id.clone(), question)
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn choice(id: &str, options: &[(&str, Option<&str>)]) -> ChoiceQuestion {
+        ChoiceQuestion {
+            id: id.into(),
+            instructions: "pick".into(),
+            criteria: options
+                .iter()
+                .map(|(name, description)| ChoiceOption {
+                    name: (*name).into(),
+                    description: description.map(str::to_string),
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn choice_criteria_keeps_null_description() {
+        let out = choice_questions(&[choice(
+            "team",
+            &[("billing", Some("付款与退款")), ("support", None)],
+        )]);
+        let (id, question) = &out[0];
+        assert_eq!(id, "team");
+        assert_eq!(question["type"], "choice");
+        assert_eq!(question["criteria"]["billing"], "付款与退款");
+        assert!(question["criteria"]["support"].is_null());
+    }
+
+    #[test]
+    fn score_criteria_keep_order() {
+        let out = score_questions(&[ScoreQuestion {
+            id: "urgency".into(),
+            instructions: "rate".into(),
+            criteria: vec!["a".into(), "b".into(), "c".into()],
+        }]);
+        assert_eq!(out[0].1["criteria"], json!(["a", "b", "c"]));
+    }
+
+    #[test]
+    fn noul_omits_empty_criteria() {
+        let out = noul_questions(&[NoulQuestion {
+            id: "dup".into(),
+            instructions: "?".into(),
+            criteria: None,
+        }]);
+        assert!(out[0].1.get("criteria").is_none());
+    }
+
+    #[test]
+    fn noul_emits_only_supplied_sides() {
+        let out = noul_questions(&[NoulQuestion {
+            id: "dup".into(),
+            instructions: "?".into(),
+            criteria: Some(NoulCriteria {
+                when_true: Some("明确不满".into()),
+                when_false: None,
+            }),
+        }]);
+        assert_eq!(out[0].1["criteria"], json!({ "true": "明确不满" }));
+    }
+
+    #[test]
+    fn error_detail_handles_both_shapes() {
+        let openrouter = json!({"error": {"message": "Model nope does not exist", "code": 400}});
+        let (code, message) = upstream_error_detail(&openrouter);
+        assert_eq!(code.as_deref(), Some("400"));
+        assert_eq!(message, "Model nope does not exist");
+
+        let system_one = json!({"error": {"message": "bad input", "type": "invalid_request"}});
+        let (code, message) = upstream_error_detail(&system_one);
+        assert_eq!(code.as_deref(), Some("invalid_request"));
+        assert_eq!(message, "bad input");
+    }
+
+    #[test]
+    fn state_validation_rejects_scalars() {
+        assert!(validate_state(&json!("text")).is_ok());
+        assert!(validate_state(&json!({"a": 1})).is_ok());
+        assert!(validate_state(&json!([1, 2])).is_ok());
+        assert!(validate_state(&json!(42)).is_err());
+        assert!(validate_state(&Value::Null).is_err());
     }
 }
