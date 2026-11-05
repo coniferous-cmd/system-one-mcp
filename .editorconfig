@@ -1,0 +1,53 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.java]
+indent_size = 2
+indent_style = space
+max_line_length = 80
+
+[*.rs]
+indent_size = 4
+indent_style = space
+max_line_length = 100
+
+[*.toml]
+indent_size = 2
+indent_style = space
+
+[*.yml]
+indent_size = 2
+indent_style = space
+
+[*.xml]
+indent_size = 2
+indent_style = space
+
+[*.md]
+indent_style = tab
+trim_trailing_whitespace = false
+
+[*.sh]
+indent_size = 2
+indent_style = space
+
+[*.cmd]
+indent_size = 2
+indent_style = space
+
+[*.bat]
+indent_size = 2
+indent_style = space
+
+[*.css]
+indent_size = 2
+indent_style = space
+
+[*.html]
+indent_size = 2
+indent_style = space
