@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "system-one": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}

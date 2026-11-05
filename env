@@ -1,0 +1,5 @@
+export SYSTEM_ONE_API_KEY=test
+export SYSTEM_ONE_MODEL=tev1:4b
+export SYSTEM_ONE_ENDPOINT=http://localhost:11434/v1/systemone
+export MCP_ALLOWED_HOSTS=localhost,127.0.0.1
+export RUST_LOG=system_one_mcp=info,tower_http=info
