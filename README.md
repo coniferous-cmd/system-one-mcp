@@ -50,11 +50,71 @@ failing on the first tool call.
 
 ## Run
 
+### Download a binary (no Rust or Docker required)
+
+Download the archive matching your machine from this repository's GitHub
+**Releases** page. Each archive includes the executable, this README, and
+`.env.example`.
+
+| System | Architecture | Archive suffix |
+|---|---|---|
+| Windows | Intel / AMD 64-bit | `x86_64-pc-windows-msvc.zip` |
+| macOS | Intel | `x86_64-apple-darwin.tar.gz` |
+| macOS | Apple Silicon | `aarch64-apple-darwin.tar.gz` |
+| Linux / Alpine Linux | Intel / AMD 64-bit | `x86_64-unknown-linux-musl.tar.gz` |
+| Linux / Alpine Linux | ARM64 | `aarch64-unknown-linux-musl.tar.gz` |
+
+Archive names start with `system-one-mcp-`. Linux binaries are statically linked
+with musl: the same binary supports both Alpine and common glibc-based Linux
+distributions without installing glibc or OpenSSL. Windows binaries statically
+link the MSVC C runtime. macOS binaries use system libraries and are currently
+unsigned and not notarized; releases do not include installers or auto-updaters.
+
+Each archive has a matching `.sha256` file. Verify it **before extracting**:
+
 ```bash
-cargo run --release
+# Linux / Alpine (replace <target> with the target from the table)
+sha256sum -c system-one-mcp-<target>.tar.gz.sha256
+# macOS
+shasum -a 256 -c system-one-mcp-<target>.tar.gz.sha256
+
+tar -xzf system-one-mcp-<target>.tar.gz
+cd system-one-mcp-<target>
+export SYSTEM_ONE_API_KEY='your-api-key'
+export SYSTEM_ONE_MODEL='your-model-id'
+export MCP_BIND_ADDR='127.0.0.1:8080'
+./system-one-mcp
 ```
 
-Then point the client at `http://<host>:8080/mcp`.
+On Windows, use PowerShell:
+
+```powershell
+$archive = 'system-one-mcp-x86_64-pc-windows-msvc.zip'
+$expected = ((Get-Content "$archive.sha256") -split '\s+')[0]
+if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne $expected) {
+    throw 'SHA-256 checksum mismatch'
+}
+Expand-Archive $archive -DestinationPath .
+Set-Location system-one-mcp-x86_64-pc-windows-msvc
+$env:SYSTEM_ONE_API_KEY = 'your-api-key'
+$env:SYSTEM_ONE_MODEL = 'your-model-id'
+$env:MCP_BIND_ADDR = '127.0.0.1:8080'
+.\system-one-mcp.exe
+```
+
+The server reads environment variables; it does **not** automatically load
+`.env.example` or `.env`. Bind to loopback for local use. For remote access,
+configure `MCP_ALLOWED_HOSTS` and protect the endpoint as described below.
+
+### Build from source
+
+Install Rust 1.88 or newer, export the configuration variables above, then run:
+
+```bash
+cargo run --locked --release
+```
+
+Point the client at `http://127.0.0.1:8080/mcp` for local use.
 
 ## Docker
 
@@ -79,6 +139,7 @@ immediately if `SYSTEM_ONE_API_KEY` or `SYSTEM_ONE_MODEL` is missing.
 |---|---|---|
 | `.github/workflows/ci.yml` | push to `main`, pull requests | `cargo fmt --check`, `clippy -D warnings`, `cargo test`, and a Docker build (no push) |
 | `.github/workflows/docker.yml` | push to `main`, tags `v*` | multi-arch (`amd64`/`arm64`) build pushed to `ghcr.io/<owner>/<repo>` |
+| `.github/workflows/binaries.yml` | push to `main`, pull requests, tags `v*`, manual dispatch | builds and tests all five binary targets, uploads archives/checksums as workflow artifacts; tag pushes also publish them to GitHub Releases |
 
 Image tags come from `docker/metadata-action`: branch name, `sha-<short>`, and
 semver tags for `v*` releases.
@@ -92,6 +153,24 @@ git remote add origin git@github.com:<owner>/<repo>.git
 GitHub Packages uses the built-in `GITHUB_TOKEN`, so no extra secret is needed.
 If your repository name contains uppercase letters, the workflow lowercases it
 automatically because GHCR rejects mixed-case image names.
+
+Binary builds run on native Windows, Intel/ARM macOS, and Intel/ARM Linux
+runners. Each target runs Rust unit tests and the free Python startup/protocol
+suite against its **release binary**. Linux binaries also run the free suite
+inside Alpine 3.22. No release tests call the paid upstream API.
+
+To publish binaries (requires Actions to have permission to write repository
+contents):
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Only a `v*` tag push publishes a GitHub Release, after all five build jobs pass.
+Branch, pull request, and manual runs only upload workflow artifacts. Each
+Release asset is a `.zip` / `.tar.gz` archive or its `.sha256` checksum. These
+checksums detect corruption; they are not code signatures.
 
 ## Example call
 
@@ -159,6 +238,7 @@ docker build -t system-one-mcp .     # container image
 
 # black-box tests that talk MCP over HTTP
 python scripts/run_all.py            # startup + protocol, no upstream cost
+python -m unittest discover -s scripts -p test_package_binary.py -v
 LIVE=1 python scripts/run_all.py     # adds real (billable) upstream calls
 ```
 
@@ -171,6 +251,12 @@ LIVE=1 python scripts/run_all.py     # adds real (billable) upstream calls
 The scripts use only the standard library — no `pip install`. `run_all.py`
 starts and stops the server itself, forwarding any `SYSTEM_ONE_*` env vars, and
 skips live tests unless `LIVE=1` is set so CI never spends your credits.
+
+Set `MCP_TEST_BINARY` to an executable path to test a particular release binary
+instead of auto-detecting `target/debug` or `target/release`. Package a locally
+built supported target with
+`python scripts/package_binary.py --target <target>` (Python 3.11+); outputs go
+to `dist/`.
 
 Set `MCP_DEBUG=1` to trace every JSON-RPC request to stderr when a session
 misbehaves.

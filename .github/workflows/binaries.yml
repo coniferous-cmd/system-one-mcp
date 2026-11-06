@@ -1,0 +1,139 @@
+name: Binaries
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: binaries-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Each Linux target builds on its native architecture. musl-gcc is also
+      # picked up by cc/ring for native C code, not just the final Rust link.
+      - name: Install musl toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          echo "CARGO_TARGET_$(echo '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')_LINKER=musl-gcc" >> "$GITHUB_ENV"
+          echo "CC=musl-gcc" >> "$GITHUB_ENV"
+
+      - name: Link Windows C runtime statically
+        if: runner.os == 'Windows'
+        run: echo 'RUSTFLAGS=-C target-feature=+crt-static' >> "$GITHUB_ENV"
+
+      - name: Build release binary
+        run: cargo build --locked --release --target '${{ matrix.target }}'
+
+      - name: Verify static Linux linkage
+        if: runner.os == 'Linux'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          readelf -lW "target/$TARGET/release/system-one-mcp" > program-headers.txt
+          if grep -q 'INTERP' program-headers.txt; then
+            echo 'Expected a static binary without a dynamic interpreter' >&2
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: cargo test --locked --target '${{ matrix.target }}'
+
+      - name: Test release binary on host
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          binary="target/$TARGET/release/system-one-mcp"
+          if [[ "$RUNNER_OS" == Windows ]]; then binary="$binary.exe"; fi
+          export MCP_TEST_BINARY="$GITHUB_WORKSPACE/$binary"
+          python scripts/run_all.py
+
+      - name: Test Linux binary on Alpine
+        if: runner.os == 'Linux'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work:ro" -w /work \
+            -e "MCP_TEST_BINARY=/work/target/$TARGET/release/system-one-mcp" \
+            alpine:3.22 sh -ec 'apk add --no-cache python3 ca-certificates; python3 scripts/run_all.py'
+
+      - name: Test packaging
+        run: python -m unittest discover -s scripts -p test_package_binary.py -v
+
+      - name: Package binary
+        run: python scripts/package_binary.py --target '${{ matrix.target }}'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: system-one-mcp-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: system-one-mcp-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish archives and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Reruns update assets without failing because the release exists.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --generate-notes
+          fi
+          gh release upload "$TAG" dist/* --clobber

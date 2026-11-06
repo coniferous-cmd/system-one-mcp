@@ -113,6 +113,13 @@ class ServerProcess:
 
 
 def default_binary() -> str:
+    # CI tests the exact target/release artifact, never a stale host debug build.
+    override = os.environ.get("MCP_TEST_BINARY")
+    if override:
+        candidate = os.path.abspath(override)
+        if not os.path.isfile(candidate):
+            raise FileNotFoundError(f"MCP_TEST_BINARY does not exist: {candidate}")
+        return candidate
     name = "system-one-mcp" + (".exe" if os.name == "nt" else "")
     for profile in ("debug", "release"):
         candidate = os.path.join(ROOT, "target", profile, name)
