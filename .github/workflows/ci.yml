@@ -49,8 +49,23 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: system-one-mcp:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # The image runs on musl. Without configuration the server must fail on
+      # the missing API key (exit 1), not on a missing dynamic loader (exit 127),
+      # which is what a glibc-only binary produces inside Alpine.
+      - name: Smoke-run in Alpine runtime
+        run: |
+          set +e
+          output=$(docker run --rm system-one-mcp:ci 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$status" -eq 1
+          printf '%s' "$output" | grep -q 'SYSTEM_ONE_API_KEY is required but not set'
 
   scripts:
     name: python black-box tests

@@ -1,9 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage -----------------------------------------------------------
-FROM rust:1.97-slim-trixie AS builder
+# Alpine's Rust toolchain targets *-unknown-linux-musl, so the resulting binary
+# is statically linked and does not depend on a glibc dynamic loader.
+FROM rust:1.97-alpine AS builder
 
 WORKDIR /src
+
+# musl-dev provides the headers/linker glue used by ring's C/asm build.
+RUN apk add --no-cache musl-dev
 
 # Compile dependencies first so a source-only change reuses the cached layer.
 # A stub main is used to populate the dependency graph, then removed.
@@ -18,14 +23,12 @@ COPY src ./src
 RUN touch src/main.rs && cargo build --release
 
 # ---- runtime stage ---------------------------------------------------------
-FROM debian:trixie-slim AS runtime
+FROM alpine:3.22 AS runtime
 
 # rustls is used for TLS, so no OpenSSL runtime is required. Only the CA bundle
 # is needed to verify the upstream certificate.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && useradd --system --uid 10001 --create-home app
+RUN apk add --no-cache ca-certificates \
+    && adduser --system --uid 10001 --home /home/app app
 
 COPY --from=builder /src/target/release/system-one-mcp /usr/local/bin/system-one-mcp
 
