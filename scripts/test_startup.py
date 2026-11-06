@@ -83,6 +83,37 @@ def main() -> None:
 
         with McpClient(server.url) as client:
             client.initialize()
+    runner.section("empty host configuration keeps loopback-only defaults")
+    with ServerProcess(
+        {
+            "SYSTEM_ONE_API_KEY": SECRET,
+            "SYSTEM_ONE_MODEL": "m",
+            "MCP_ALLOWED_HOSTS": "",
+        }
+    ) as server:
+        runner.equal("default loopback accepted", _initialize(server.url, host="127.0.0.1"), 200)
+        runner.equal("default foreign Host rejected", _initialize(server.url, host="evil.example.com"), 403)
+
+    runner.section("wildcard disables Host validation")
+    for allowed_hosts in ("*", " localhost, * "):
+        with ServerProcess(
+            {
+                "SYSTEM_ONE_API_KEY": SECRET,
+                "SYSTEM_ONE_MODEL": "m",
+                "MCP_ALLOWED_HOSTS": allowed_hosts,
+            }
+        ) as server:
+            runner.equal(
+                f"{allowed_hosts!r} accepts arbitrary Host",
+                _initialize(server.url, host="arbitrary.example.com"),
+                200,
+            )
+            runner.equal(
+                f"{allowed_hosts!r} accepts arbitrary Host with port",
+                _initialize(server.url, host="other.example.com:18080"),
+                200,
+            )
+
             tools = client.list_tools()
             # A wrong-port endpoint fails fast, which also exercises the error
             # path; the response must not echo the credential.

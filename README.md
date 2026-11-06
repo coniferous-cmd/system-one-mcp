@@ -41,12 +41,18 @@ Optional:
 | `SYSTEM_ONE_ENDPOINT` | `https://system-one.dev/v1/systemone` | Full upstream endpoint. |
 | `MCP_BIND_ADDR` | `0.0.0.0:8080` | Listen address. |
 | `MCP_PATH` | `/mcp` | MCP route path. |
-| `MCP_ALLOWED_HOSTS` | empty | Comma-separated `Host` allow-list. **Required for non-loopback deployments.** |
+| `MCP_ALLOWED_HOSTS` | empty | Comma-separated `Host` allow-list. Empty keeps loopback-only defaults. **Required for non-loopback deployments.** A standalone `*` entry allows any Host (disables DNS rebinding protection). |
 | `SYSTEM_ONE_TIMEOUT_SECS` | `120` | Upstream request timeout. |
 | `RUST_LOG` | `system_one_mcp=info` | Log filter. |
 
 Missing `SYSTEM_ONE_API_KEY` or `SYSTEM_ONE_MODEL` aborts startup instead of
 failing on the first tool call.
+To accept any Host, set `MCP_ALLOWED_HOSTS='*'` in the server environment
+and restart the server. A `*` entry also overrides other entries in a
+comma-separated list. This disables Host validation, not authentication;
+protect public endpoints with authentication and rate limits to prevent
+unauthorized use of your upstream API quota.
+
 
 ## Run
 

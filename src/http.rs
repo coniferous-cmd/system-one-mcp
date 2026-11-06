@@ -19,7 +19,9 @@ pub async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 
     // The SDK only accepts loopback Host headers by default. A remote deployment
     // must declare its public hostnames, otherwise every request is rejected.
-    if !config.allowed_hosts.is_empty() {
+    if config.allowed_hosts.iter().any(|host| host == "*") {
+        http_config = http_config.disable_allowed_hosts();
+    } else if !config.allowed_hosts.is_empty() {
         http_config = http_config.with_allowed_hosts(config.allowed_hosts.clone());
     }
 
