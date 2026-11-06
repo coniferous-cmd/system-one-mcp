@@ -69,20 +69,6 @@ def main() -> None:
         status = _initialize(server.url, host="evil.example.com")
         runner.equal("foreign Host rejected", status, 403)
 
-    runner.section("API key stays out of the logs and the tool surface")
-    with ServerProcess(
-        {
-            "SYSTEM_ONE_API_KEY": SECRET,
-            "SYSTEM_ONE_MODEL": "m",
-            "RUST_LOG": "trace",
-            "SYSTEM_ONE_ENDPOINT": f"http://127.0.0.1:{_free_port()}/v1/systemone",
-        }
-    ) as server:
-        wait_until_up(server.url)
-        from mcp_client import McpClient
-
-        with McpClient(server.url) as client:
-            client.initialize()
     runner.section("empty host configuration keeps loopback-only defaults")
     with ServerProcess(
         {
@@ -114,6 +100,20 @@ def main() -> None:
                 200,
             )
 
+    runner.section("API key stays out of the logs and the tool surface")
+    with ServerProcess(
+        {
+            "SYSTEM_ONE_API_KEY": SECRET,
+            "SYSTEM_ONE_MODEL": "m",
+            "RUST_LOG": "trace",
+            "SYSTEM_ONE_ENDPOINT": f"http://127.0.0.1:{_free_port()}/v1/systemone",
+        }
+    ) as server:
+        wait_until_up(server.url)
+        from mcp_client import McpClient
+
+        with McpClient(server.url) as client:
+            client.initialize()
             tools = client.list_tools()
             # A wrong-port endpoint fails fast, which also exercises the error
             # path; the response must not echo the credential.

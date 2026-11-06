@@ -47,12 +47,12 @@ Optional:
 
 Missing `SYSTEM_ONE_API_KEY` or `SYSTEM_ONE_MODEL` aborts startup instead of
 failing on the first tool call.
+
 To accept any Host, set `MCP_ALLOWED_HOSTS='*'` in the server environment
 and restart the server. A `*` entry also overrides other entries in a
 comma-separated list. This disables Host validation, not authentication;
 protect public endpoints with authentication and rate limits to prevent
 unauthorized use of your upstream API quota.
-
 
 ## Run
 
