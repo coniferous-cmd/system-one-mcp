@@ -1,5 +1,15 @@
+# Local development configuration (Ollama-backed System One endpoint).
+# Load with: set -a; . ./env; set +a
 export SYSTEM_ONE_API_KEY=test
 export SYSTEM_ONE_MODEL=tev1:4b
 export SYSTEM_ONE_ENDPOINT=http://localhost:11434/v1/systemone
+
+# MCP server
+export MCP_BIND_ADDR=0.0.0.0:8080
+export MCP_PATH=/mcp
 export MCP_ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Upstream request timeout in seconds
+export SYSTEM_ONE_TIMEOUT_SECS=120
+
 export RUST_LOG=system_one_mcp=info,tower_http=info
