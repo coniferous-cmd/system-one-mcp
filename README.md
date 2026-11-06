@@ -56,6 +56,25 @@ cargo run --release
 
 Then point the client at `http://<host>:8080/mcp`.
 
+### Static binary for Alpine / other musl hosts
+
+`cargo build --release` on a glibc host produces a glibc dynamically linked
+binary; Alpine has no glibc loader, so that binary fails with `not found`
+(exit 127). Build for the musl target instead to get a fully static binary:
+
+```bash
+# Debian/Ubuntu: rustup target add x86_64-unknown-linux-musl
+#                sudo apt install musl-tools
+# Fedora:        sudo dnf install musl-gcc
+rustup target add x86_64-unknown-linux-musl
+cargo build --release --target x86_64-unknown-linux-musl
+```
+
+The output is `target/x86_64-unknown-linux-musl/release/system-one-mcp` and runs
+unchanged on Alpine, distroless and scratch-style images; only a CA bundle is
+needed for TLS. For cross-arch builds, `cargo-zigbuild` is a convenient
+alternative. The Docker build already uses this musl target.
+
 ## Docker
 
 ```bash
@@ -70,7 +89,9 @@ docker run --rm -p 8080:8080 \
 
 The image builds with a dependency-caching layer, runs as a non-root user
 (uid 10001), needs no OpenSSL (rustls), and listens on `0.0.0.0:8080` by
-default. Secrets are read from the environment at start; the container exits
+default. The builder is Alpine's musl toolchain, so the binary copied into the
+`alpine:3.22` runtime is statically linked — it also runs on any other musl or
+glibc host. Secrets are read from the environment at start; the container exits
 immediately if `SYSTEM_ONE_API_KEY` or `SYSTEM_ONE_MODEL` is missing.
 
 ## GitHub Actions
