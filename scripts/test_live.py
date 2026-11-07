@@ -1,9 +1,9 @@
-"""Live semantic tests against the real System One upstream.
+"""Live semantic tests against the real decision upstream.
 
 These calls cost money on every run, so they only execute when explicitly
 enabled:
 
-    LIVE=1 SYSTEM_ONE_MODEL=typesafe/jev-1.13 \\
+    LIVE=1 DECISION_MODEL=typesafe/jev-1.13 \\
         MCP_URL=http://127.0.0.1:8080/mcp python scripts/test_live.py
 
 What is asserted here is *semantics*, not just "did it 200": that Choice returns
@@ -24,7 +24,7 @@ from harness import Runner, exit_on_error, tool_error_payload, tool_payload  # n
 from mcp_client import McpClient  # noqa: E402
 
 URL = os.environ.get("MCP_URL", "http://127.0.0.1:8080/mcp")
-MODEL = os.environ.get("SYSTEM_ONE_MODEL")
+MODEL = os.environ.get("DECISION_MODEL")
 
 STATE = (
     "订单 #A-1042 的客户来信：本月同一笔 399 元订单被扣款两次，"

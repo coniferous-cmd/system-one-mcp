@@ -30,15 +30,15 @@ FROM alpine:3.22 AS runtime
 RUN apk add --no-cache ca-certificates \
     && adduser --system --uid 10001 --home /home/app app
 
-COPY --from=builder /src/target/release/system-one-mcp /usr/local/bin/system-one-mcp
+COPY --from=builder /src/target/release/decision-mcp /usr/local/bin/decision-mcp
 
-# The server reads SYSTEM_ONE_API_KEY and SYSTEM_ONE_MODEL at startup and exits
+# The server reads DECISION_API_KEY and DECISION_MODEL at startup and exits
 # if either is missing, so they must be supplied at run time.
 ENV MCP_BIND_ADDR=0.0.0.0:8080 \
     MCP_PATH=/mcp \
-    RUST_LOG=system_one_mcp=info
+    RUST_LOG=decision_mcp=info
 
 USER app
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/system-one-mcp"]
+ENTRYPOINT ["/usr/local/bin/decision-mcp"]

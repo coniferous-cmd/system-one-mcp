@@ -72,7 +72,7 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          readelf -lW "target/$TARGET/release/system-one-mcp" > program-headers.txt
+          readelf -lW "target/$TARGET/release/decision-mcp" > program-headers.txt
           if grep -q 'INTERP' program-headers.txt; then
             echo 'Expected a static binary without a dynamic interpreter' >&2
             exit 1
@@ -85,7 +85,7 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          binary="target/$TARGET/release/system-one-mcp"
+          binary="target/$TARGET/release/decision-mcp"
           if [[ "$RUNNER_OS" == Windows ]]; then binary="$binary.exe"; fi
           export MCP_TEST_BINARY="$GITHUB_WORKSPACE/$binary"
           python scripts/run_all.py
@@ -97,7 +97,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/work:ro" -w /work \
-            -e "MCP_TEST_BINARY=/work/target/$TARGET/release/system-one-mcp" \
+            -e "MCP_TEST_BINARY=/work/target/$TARGET/release/decision-mcp" \
             alpine:3.22 sh -ec 'apk add --no-cache python3 ca-certificates; python3 scripts/run_all.py'
 
       - name: Test packaging
@@ -108,7 +108,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: system-one-mcp-${{ matrix.target }}
+          name: decision-mcp-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
 
@@ -122,7 +122,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: system-one-mcp-*
+          pattern: decision-mcp-*
           path: dist
           merge-multiple: true
 

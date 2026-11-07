@@ -24,14 +24,14 @@ def package(target: str, root: Path = ROOT) -> Path:
     if target not in TARGETS:
         raise ValueError(f"unsupported target: {target}")
     windows = target.endswith("windows-msvc")
-    binary_name = "system-one-mcp" + (".exe" if windows else "")
+    binary_name = "decision-mcp" + (".exe" if windows else "")
     binary = root / "target" / target / "release" / binary_name
     if not binary.is_file():
         raise FileNotFoundError(f"release binary not found: {binary}")
 
     dist = root / "dist"
     dist.mkdir(parents=True, exist_ok=True)
-    name = f"system-one-mcp-{target}"
+    name = f"decision-mcp-{target}"
     archive = dist / (name + (".zip" if windows else ".tar.gz"))
     with tempfile.TemporaryDirectory() as temporary:
         staging = Path(temporary) / name

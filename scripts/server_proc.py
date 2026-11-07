@@ -25,13 +25,13 @@ class ServerProcess:
         self.port = port or free_port()
         self.url = f"http://127.0.0.1:{self.port}/mcp"
         self.binary = binary or default_binary()
-        # Ambient SYSTEM_ONE_* values are scrubbed by default so a stray .env
+        # Ambient DECISION_* values are scrubbed by default so a stray .env
         # cannot silently change what a test is measuring. Suites that *want*
         # the real upstream config opt in.
         if inherit_upstream:
             env = dict(os.environ)
         else:
-            env = {k: v for k, v in os.environ.items() if not k.startswith("SYSTEM_ONE_")}
+            env = {k: v for k, v in os.environ.items() if not k.startswith("DECISION_")}
         env.setdefault("RUST_LOG", "warn")
         env.update(
             {
@@ -46,7 +46,7 @@ class ServerProcess:
         # Logs go to a file rather than a pipe: a chatty run (RUST_LOG=trace)
         # would otherwise fill the pipe buffer and deadlock the server.
         self._log = tempfile.NamedTemporaryFile(
-            prefix="system-one-mcp-", suffix=".log", delete=False
+            prefix="decision-mcp-", suffix=".log", delete=False
         )
 
     def __enter__(self) -> "ServerProcess":
@@ -120,7 +120,7 @@ def default_binary() -> str:
         if not os.path.isfile(candidate):
             raise FileNotFoundError(f"MCP_TEST_BINARY does not exist: {candidate}")
         return candidate
-    name = "system-one-mcp" + (".exe" if os.name == "nt" else "")
+    name = "decision-mcp" + (".exe" if os.name == "nt" else "")
     for profile in ("debug", "release"):
         candidate = os.path.join(ROOT, "target", profile, name)
         if os.path.exists(candidate):

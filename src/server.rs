@@ -11,7 +11,7 @@ use serde_json::{Map, Value, json};
 use crate::upstream::{ChoiceParams, NoulParams, ScoreParams, Upstream, UpstreamOutcome};
 
 const INSTRUCTIONS: &str = "\
-This server exposes System One structured decision primitives. Each tool sends one upstream \
+This server exposes structured decision primitives. Each tool sends one upstream \
 request for one or more questions of the same type, sharing a single `state` context.\n\
 - `Choice`: pick one named option per question.\n\
 - `Score`: rate each question on an ordered list of levels; the score may be fractional.\n\
@@ -21,13 +21,13 @@ precision are not rounded or reinterpreted. Question ids in the result match the
 The model is configured server-side and cannot be chosen per call.";
 
 #[derive(Clone)]
-pub struct SystemOneServer {
+pub struct DecisionServer {
     upstream: Arc<Upstream>,
     tool_router: ToolRouter<Self>,
 }
 
 #[tool_router(router = tool_router)]
-impl SystemOneServer {
+impl DecisionServer {
     pub fn new(upstream: Arc<Upstream>) -> Self {
         Self {
             upstream,
@@ -80,11 +80,11 @@ result is a probability, not a boolean, so do not treat 0.97 as certain."
 }
 
 #[tool_handler(router = self.tool_router)]
-impl ServerHandler for SystemOneServer {
+impl ServerHandler for DecisionServer {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new(
-                "system-one-mcp",
+                "decision-mcp",
                 env!("CARGO_PKG_VERSION"),
             ))
             .with_instructions(INSTRUCTIONS)

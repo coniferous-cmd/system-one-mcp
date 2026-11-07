@@ -26,19 +26,19 @@ def main() -> None:
 
     runner.section("missing configuration aborts startup")
     runner.case(
-        "no SYSTEM_ONE_API_KEY",
-        lambda: _expect_boot_failure(runner, {"SYSTEM_ONE_MODEL": "m"}, "SYSTEM_ONE_API_KEY"),
+        "no DECISION_API_KEY",
+        lambda: _expect_boot_failure(runner, {"DECISION_MODEL": "m"}, "DECISION_API_KEY"),
     )
     runner.case(
-        "no SYSTEM_ONE_MODEL",
-        lambda: _expect_boot_failure(runner, {"SYSTEM_ONE_API_KEY": SECRET}, "SYSTEM_ONE_MODEL"),
+        "no DECISION_MODEL",
+        lambda: _expect_boot_failure(runner, {"DECISION_API_KEY": SECRET}, "DECISION_MODEL"),
     )
     runner.case(
-        "blank SYSTEM_ONE_API_KEY",
+        "blank DECISION_API_KEY",
         lambda: _expect_boot_failure(
             runner,
-            {"SYSTEM_ONE_API_KEY": "   ", "SYSTEM_ONE_MODEL": "m"},
-            "SYSTEM_ONE_API_KEY",
+            {"DECISION_API_KEY": "   ", "DECISION_MODEL": "m"},
+            "DECISION_API_KEY",
         ),
     )
     runner.case(
@@ -46,17 +46,17 @@ def main() -> None:
         lambda: _expect_boot_failure(
             runner,
             {
-                "SYSTEM_ONE_API_KEY": SECRET,
-                "SYSTEM_ONE_MODEL": "m",
-                "SYSTEM_ONE_ENDPOINT": "ftp://example.com/x",
+                "DECISION_API_KEY": SECRET,
+                "DECISION_MODEL": "m",
+                "DECISION_ENDPOINT": "ftp://example.com/x",
             },
-            "SYSTEM_ONE_ENDPOINT",
+            "DECISION_ENDPOINT",
         ),
     )
 
     runner.section("host allow-list guards against DNS rebinding")
     with ServerProcess(
-        {"SYSTEM_ONE_API_KEY": SECRET, "SYSTEM_ONE_MODEL": "m"}, port=None
+        {"DECISION_API_KEY": SECRET, "DECISION_MODEL": "m"}, port=None
     ) as server:
         wait_until_up(server.url)
 
@@ -72,8 +72,8 @@ def main() -> None:
     runner.section("empty host configuration keeps loopback-only defaults")
     with ServerProcess(
         {
-            "SYSTEM_ONE_API_KEY": SECRET,
-            "SYSTEM_ONE_MODEL": "m",
+            "DECISION_API_KEY": SECRET,
+            "DECISION_MODEL": "m",
             "MCP_ALLOWED_HOSTS": "",
         }
     ) as server:
@@ -84,8 +84,8 @@ def main() -> None:
     for allowed_hosts in ("*", " localhost, * "):
         with ServerProcess(
             {
-                "SYSTEM_ONE_API_KEY": SECRET,
-                "SYSTEM_ONE_MODEL": "m",
+                "DECISION_API_KEY": SECRET,
+                "DECISION_MODEL": "m",
                 "MCP_ALLOWED_HOSTS": allowed_hosts,
             }
         ) as server:
@@ -103,10 +103,10 @@ def main() -> None:
     runner.section("API key stays out of the logs and the tool surface")
     with ServerProcess(
         {
-            "SYSTEM_ONE_API_KEY": SECRET,
-            "SYSTEM_ONE_MODEL": "m",
+            "DECISION_API_KEY": SECRET,
+            "DECISION_MODEL": "m",
             "RUST_LOG": "trace",
-            "SYSTEM_ONE_ENDPOINT": f"http://127.0.0.1:{_free_port()}/v1/systemone",
+            "DECISION_ENDPOINT": f"http://127.0.0.1:{_free_port()}/v1/systemone",
         }
     ) as server:
         wait_until_up(server.url)
@@ -135,7 +135,7 @@ def main() -> None:
 
     runner.section("log output")
     with ServerProcess(
-        {"SYSTEM_ONE_API_KEY": SECRET, "SYSTEM_ONE_MODEL": "m", "RUST_LOG": "info"}
+        {"DECISION_API_KEY": SECRET, "DECISION_MODEL": "m", "RUST_LOG": "info"}
     ) as server:
         wait_until_up(server.url)
         server.stop()

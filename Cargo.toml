@@ -1,5 +1,5 @@
 [package]
-name = "system-one-mcp"
+name = "decision-mcp"
 version = "1.10.1"
 edition = "2024"
 rust-version = "1.88"

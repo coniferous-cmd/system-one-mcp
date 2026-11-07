@@ -21,14 +21,14 @@ class PackageTests(unittest.TestCase):
             with self.subTest(target=target), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 windows = target.endswith("windows-msvc")
-                binary_name = "system-one-mcp" + (".exe" if windows else "")
+                binary_name = "decision-mcp" + (".exe" if windows else "")
                 binary = root / "target" / target / "release" / binary_name
                 binary.parent.mkdir(parents=True)
                 binary.write_bytes(b"test release binary")
                 for name in ("README.md", ".env.example"):
                     (root / name).write_text("test document", encoding="utf-8")
                 archive = package(target, root)
-                prefix = f"system-one-mcp-{target}/"
+                prefix = f"decision-mcp-{target}/"
                 expected = {prefix + name for name in (binary_name, "README.md", ".env.example")}
                 if windows:
                     with zipfile.ZipFile(archive) as handle:

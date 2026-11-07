@@ -31,7 +31,7 @@ def main() -> None:
         info = client.initialize()
         runner.equal("protocolVersion echoed", info.get("protocolVersion"), "2025-06-18")
         server_info = info.get("serverInfo") or {}
-        runner.equal("serverInfo.name", server_info.get("name"), "system-one-mcp")
+        runner.equal("serverInfo.name", server_info.get("name"), "decision-mcp")
         runner.check("serverInfo.version present", bool(server_info.get("version")))
         runner.check(
             "tools capability advertised", "tools" in (info.get("capabilities") or {})

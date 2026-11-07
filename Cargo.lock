@@ -214,6 +214,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "decision-mcp"
+version = "1.10.1"
+dependencies = [
+ "axum",
+ "reqwest",
+ "rmcp",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1279,23 +1296,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
-]
-
-[[package]]
-name = "system-one-mcp"
-version = "1.10.1"
-dependencies = [
- "axum",
- "reqwest",
- "rmcp",
- "schemars",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

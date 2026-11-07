@@ -6,7 +6,7 @@ use rmcp::transport::streamable_http_server::{
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
-use crate::{config::Config, server::SystemOneServer, upstream::Upstream};
+use crate::{config::Config, server::DecisionServer, upstream::Upstream};
 
 pub async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     let upstream = Arc::new(Upstream::new(&config)?);
@@ -28,7 +28,7 @@ pub async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     let service = StreamableHttpService::new(
         {
             let upstream = upstream.clone();
-            move || Ok(SystemOneServer::new(upstream.clone()))
+            move || Ok(DecisionServer::new(upstream.clone()))
         },
         Arc::new(LocalSessionManager::default()),
         http_config,
@@ -41,7 +41,7 @@ pub async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         endpoint = %config.endpoint,
         model = %config.model,
         path = %config.mcp_path,
-        "system-one-mcp listening on {}",
+        "decision-mcp listening on {}",
         listener.local_addr()?
     );
 

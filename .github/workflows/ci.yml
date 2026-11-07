@@ -50,7 +50,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: system-one-mcp:ci
+          tags: decision-mcp:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -60,12 +60,12 @@ jobs:
       - name: Smoke-run in Alpine runtime
         run: |
           set +e
-          output=$(docker run --rm system-one-mcp:ci 2>&1)
+          output=$(docker run --rm decision-mcp:ci 2>&1)
           status=$?
           set -e
           printf '%s\n' "$output"
           test "$status" -eq 1
-          printf '%s' "$output" | grep -q 'SYSTEM_ONE_API_KEY is required but not set'
+          printf '%s' "$output" | grep -q 'DECISION_API_KEY is required but not set'
 
   scripts:
     name: python black-box tests

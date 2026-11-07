@@ -64,13 +64,13 @@ def _run(name: str, script: str, needs_server: bool, live: bool) -> int:
     # Forward the caller's upstream configuration so live tests hit the endpoint
     # the operator intended, not the built-in default.
     overrides = {
-        key: value for key, value in env.items() if key.startswith("SYSTEM_ONE_")
+        key: value for key, value in env.items() if key.startswith("DECISION_")
     }
-    if not overrides.get("SYSTEM_ONE_API_KEY"):
-        log(f"{name}: SYSTEM_ONE_API_KEY not set, using a placeholder")
-        overrides["SYSTEM_ONE_API_KEY"] = "placeholder"
-    if not overrides.get("SYSTEM_ONE_MODEL"):
-        overrides["SYSTEM_ONE_MODEL"] = "placeholder"
+    if not overrides.get("DECISION_API_KEY"):
+        log(f"{name}: DECISION_API_KEY not set, using a placeholder")
+        overrides["DECISION_API_KEY"] = "placeholder"
+    if not overrides.get("DECISION_MODEL"):
+        overrides["DECISION_MODEL"] = "placeholder"
 
     try:
         with ServerProcess(overrides, inherit_upstream=True) as server:

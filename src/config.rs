@@ -29,10 +29,10 @@ impl std::error::Error for ConfigError {}
 
 impl Config {
     pub fn from_env() -> Result<Self, ConfigError> {
-        let api_key = required("SYSTEM_ONE_API_KEY")?;
-        let model = required("SYSTEM_ONE_MODEL")?;
+        let api_key = required("DECISION_API_KEY")?;
+        let model = required("DECISION_MODEL")?;
 
-        let endpoint = env::var("SYSTEM_ONE_ENDPOINT")
+        let endpoint = env::var("DECISION_ENDPOINT")
             .ok()
             .map(|v| v.trim().to_string())
             .filter(|v| !v.is_empty())
@@ -40,7 +40,7 @@ impl Config {
 
         if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
             return Err(ConfigError(format!(
-                "SYSTEM_ONE_ENDPOINT must start with http:// or https://, got {endpoint:?}"
+                "DECISION_ENDPOINT must start with http:// or https://, got {endpoint:?}"
             )));
         }
 
@@ -69,13 +69,13 @@ impl Config {
             .map(str::to_string)
             .collect::<Vec<_>>();
 
-        let request_timeout_secs = env::var("SYSTEM_ONE_TIMEOUT_SECS")
+        let request_timeout_secs = env::var("DECISION_TIMEOUT_SECS")
             .ok()
             .filter(|v| !v.trim().is_empty())
             .map(|v| {
                 v.parse::<u64>().map_err(|_| {
                     ConfigError(format!(
-                        "SYSTEM_ONE_TIMEOUT_SECS must be an integer, got {v:?}"
+                        "DECISION_TIMEOUT_SECS must be an integer, got {v:?}"
                     ))
                 })
             })

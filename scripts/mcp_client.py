@@ -68,7 +68,7 @@ class McpClient:
             {
                 "protocolVersion": protocol,
                 "capabilities": {},
-                "clientInfo": {"name": "system-one-mcp-selftest", "version": "1.0"},
+                "clientInfo": {"name": "decision-mcp-selftest", "version": "1.0"},
             },
         )
         self.protocol_version = result.get("protocolVersion")
@@ -156,7 +156,7 @@ class McpClient:
                 "params": {
                     "protocolVersion": DEFAULT_PROTOCOL,
                     "capabilities": {},
-                    "clientInfo": {"name": "system-one-mcp-selftest", "version": "1.0"},
+                    "clientInfo": {"name": "decision-mcp-selftest", "version": "1.0"},
                 },
             },
             retry_on_404_session=False,

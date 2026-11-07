@@ -267,7 +267,7 @@ impl Upstream {
     }
 }
 
-/// Extract a message/code from either System One or OpenRouter style errors.
+/// Extract a message/code from either upstream-API or OpenRouter style errors.
 fn upstream_error_detail(body: &Value) -> (Option<String>, String) {
     if let Some(error) = body.get("error") {
         let code = error
@@ -451,8 +451,8 @@ mod tests {
         assert_eq!(code.as_deref(), Some("400"));
         assert_eq!(message, "Model nope does not exist");
 
-        let system_one = json!({"error": {"message": "bad input", "type": "invalid_request"}});
-        let (code, message) = upstream_error_detail(&system_one);
+        let upstream_error = json!({"error": {"message": "bad input", "type": "invalid_request"}});
+        let (code, message) = upstream_error_detail(&upstream_error);
         assert_eq!(code.as_deref(), Some("invalid_request"));
         assert_eq!(message, "bad input");
     }
