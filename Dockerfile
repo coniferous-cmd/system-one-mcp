@@ -7,8 +7,15 @@ FROM rust:1.97-alpine AS builder
 
 WORKDIR /src
 
+# Optional apk mirror host, e.g. --build-arg APK_MIRROR=https://mirrors.aliyun.com.
+# Empty keeps the default CDN; set it when dl-cdn.alpinelinux.org is unreachable.
+ARG APK_MIRROR=""
+
 # musl-dev provides the headers/linker glue used by ring's C/asm build.
-RUN apk add --no-cache musl-dev
+RUN if [ -n "$APK_MIRROR" ]; then \
+        sed -i "s#https://dl-cdn.alpinelinux.org#${APK_MIRROR}#g" /etc/apk/repositories; \
+    fi \
+    && apk add --no-cache musl-dev
 
 # Compile dependencies first so a source-only change reuses the cached layer.
 # A stub main is used to populate the dependency graph, then removed.
@@ -25,9 +32,14 @@ RUN touch src/main.rs && cargo build --release
 # ---- runtime stage ---------------------------------------------------------
 FROM alpine:3.22 AS runtime
 
+ARG APK_MIRROR=""
+
 # rustls is used for TLS, so no OpenSSL runtime is required. Only the CA bundle
 # is needed to verify the upstream certificate.
-RUN apk add --no-cache ca-certificates \
+RUN if [ -n "$APK_MIRROR" ]; then \
+        sed -i "s#https://dl-cdn.alpinelinux.org#${APK_MIRROR}#g" /etc/apk/repositories; \
+    fi \
+    && apk add --no-cache ca-certificates \
     && adduser --system --uid 10001 --home /home/app app
 
 COPY --from=builder /src/target/release/decision-mcp /usr/local/bin/decision-mcp

@@ -160,6 +160,28 @@ default. The builder is Alpine's musl toolchain, so the binary copied into the
 glibc host. Secrets are read from the environment at start; the container exits
 immediately if `DECISION_API_KEY` or `DECISION_MODEL` is missing.
 
+### Export an image for offline use
+
+`scripts/export_image.sh` builds the image and writes a `docker save` archive to
+`dist/`, which is git-ignored:
+
+```bash
+scripts/export_image.sh                  # host arch -> dist/decision-mcp-local.tar
+scripts/export_image.sh -t v0.1.0 --gzip # -> dist/decision-mcp-v0.1.0.tar.gz
+scripts/export_image.sh -p linux/arm64   # cross-build via buildx (needs QEMU)
+
+# If the Alpine CDN is unreachable, point apk at a mirror host:
+APK_MIRROR=https://mirrors.aliyun.com scripts/export_image.sh
+
+# If the container network cannot resolve external hosts at all:
+DOCKER_BUILD_NETWORK=host scripts/export_image.sh
+```
+
+Each archive gets a matching `.sha256` file. Load it on the target machine with
+`docker load -i <archive>`. The archive holds a single platform: `docker save`
+cannot represent a multi-arch manifest, so pass `-p` if the target differs from
+the build host.
+
 ## GitHub Actions
 
 | Workflow | Trigger | Does |
